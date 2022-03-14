@@ -168,7 +168,7 @@ class PredictionLayer(nn.Module):
         output = X
         if self.use_bias:
             output += self.bias
-        if task == 'binary':
+        if self.task == 'binary':
             output = torch.sigmoid(output)
         return output
 
@@ -220,5 +220,7 @@ if __name__ == '__main__':
     # local_activation_unit = LocalActivationUnit(embedding_dim=embedding_dim)
     # print(local_activation_unit(query, user_behavior).shape)        # (64, 20, 1)
 
-    # con2d
-    # Conv2dSame(in_channels=3, out_channels=2, kernel_size=(3, 1), stride=1)
+    # # con2d
+    # conv2d_same = Conv2dSame(in_channels=3, out_channels=2, kernel_size=(3, 1), stride=1)
+    # print('conv2d same:', conv2d_same(torch.randn((2,3,3,1))).shape)
+
