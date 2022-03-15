@@ -3,6 +3,7 @@
 # @FileName  : interaction.py
 # @Time      : 2022/3/10 14:13
 # @Author    : weiguang
+from operator import mod
 import os
 import sys
 import itertools
@@ -655,7 +656,94 @@ class OutterProductLayer(nn.Module):
             # p q # b * p * k
         return kp
 
+class ConvLayer(nn.Module):
+    """
+    CCPM中卷积核
+    输入形状:
+        - 3维数组列表, (batch_size, 1, field_size, embedding_size)
+    输出形状:
+        - 3维数组列表, (batch_size, last_filters, pooling_size, embedding_size)
+    Reference:
+        - Liu Q, Yu F, Wu S, et al. A convolutional click prediction model[C]//Proceedings of the 24th ACM International on Conference on Information and Knowledge Management. ACM, 2015: 1743-1746.(http://ir.ia.ac.cn/bitstream/173211/12337/1/A%20Convolutional%20Click%20Prediction%20Model.pdf)
+    """
+    def __init__(self, field_size, conv_kernel_width, conv_filters, device='cpu'):
+        """
+        Args:
+            field_size (_type_): 特征组的个数
+            conv_kernel_width (_type_): 每个kernel对应的宽度
+            conv_filters (_type_): 每一个conv layer对应的过滤器的个数
+            device (str, optional): 设备
+        """
+        super(ConvLayer, self).__init__()
+        self.device = device
+        module_list = []
+        n = int(field_size)
+        l = len(conv_filters)
+        field_shape = n
+        for i in range(1, l+1):
+            if i == 1:
+                in_channels = 1
+            else:
+                in_channels = conv_filters[i - 2]
+            out_channels = conv_filters[i - 1]
+            width = conv_kernel_width[i - 1]
+            k = max(1, int(1 - pow(i / l, l - i) * n)) if i < l else 3
+            # Conv2dSame提供了一种same方式的Conv2d
+            module_list.append(Conv2dSame(in_channels=in_channels, out_channels=out_channels, \
+                kernel_size=(width, 1), stride=1).to(self.device))
+            module_list.append(torch.nn.Tanh().to(self.device))
 
+            # 取Top-k的Pooling方式
+            module_list.append(KMaxPooling(k=min(k, field_shape), axis=2, device=self.device).to(self.device))
+            field_shape = min(k ,field_shape)
+        # 采用Sequential搭建网络结构
+        # 第一步: Conv2dSame->same卷积方式
+        # 第二步: Tanh激活函数
+        # 第三步: KMaxPooling池化
+        self.conv_layer = nn.Sequential(*module_list)
+        self.to(device)
+        self.field_shape = field_shape
+
+    def forward(self ,inputs):
+        return self.conv_layer(inputs)
+
+class LogTransformLayer(nn.Module):
+    """
+    自适应分解网络中的对数变换层，任意阶交叉特征模型
+    输入形状:
+        - 3维数组, (batch_size, field_size, embedding_size)
+    输出形状:
+        - 2维数组, (batch, ltl_hidden_size*embedding_size)
+    """
+    def __init__(self, field_size, embedding_size, ltl_hidden_size):
+        """
+        Args:
+            field_size (_type_): 特征数组个数
+            embedding_size (_type_): 特征维度
+            ltl_hidden_size (_type_): AFN中对数神经元个数
+        """
+        super(LogTransformLayer, self).__init__()
+        # 添加weights与biases
+        self.ltl_weights = nn.Parameter(torch.Tensor(field_size, ltl_hidden_size))
+        self.ltl_biases = nn.Parameter(torch.Tensor(1, 1, ltl_hidden_size))
+        # 添加两个BN层
+        self.bn = nn.ModuleList([nn.BatchNorm1d(embedding_size) for i in range(2)])
+        nn.init.normal_(self.ltl_weights, mean=0.0, std=0.1)
+        nn.init.zeros_(self.ltl_biases, )
+
+    def forward(self, inputs):
+        # 避免数值溢出
+        afn_input = torch.clamp(torch.abs(inputs), min=1e-7, max=float("Inf"))
+        # 对数组转置
+        afn_input_trans = torch.transpose(afn_input, 1, 2)
+        # 对数变化的layer
+        ltl_result = torch.log(afn_input_trans)
+        ltl_result = self.bn[0](ltl_result)
+        ltl_result = torch.matmul(ltl_result, self.ltl_weights) + self.ltl_biases
+        ltl_result = torch.exp(ltl_result)
+        ltl_result = self.bn[1](ltl_result)
+        ltl_result = torch.flatten(ltl_result, start_dim=1)
+        return ltl_result
 
 if __name__ == '__main__':
     batch_size, field_size, embedding_size = 128, 20, 32
@@ -709,5 +797,18 @@ if __name__ == '__main__':
     outter_product_layer = OutterProductLayer(field_size=8, embedding_size=32, kernel_type="mat")
     outter_inputs = [torch.randn((batch_size, 1, 32)) for _ in range(8)]
     print("outter product layer:", outter_product_layer(outter_inputs).shape)
+
+    # ConvLayer
+    conv_layer = ConvLayer(field_size=8, conv_kernel_width=[2,3,4], conv_filters=[2,3,4])
+    # (batch_size, 1, field_size, embedding_size)
+    conv_inputs = torch.randn((128, 1, 8, 32))
+    print('conv layer:', conv_layer(conv_inputs).shape)
+
+    # LogTransformLayer
+    log_transform_layer = LogTransformLayer(field_size=8, embedding_size=32, ltl_hidden_size=16)
+    # (batch_size, field_size, embedding_size)
+    log_trans_inputs = torch.randn((128, 8, 32))
+    print("log transform layer:", log_transform_layer(log_trans_inputs).shape)
+
 
 
