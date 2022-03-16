@@ -3,6 +3,7 @@
 # @FileName  : interaction.py
 # @Time      : 2022/3/10 14:13
 # @Author    : weiguang
+
 from operator import mod
 import os
 import sys
