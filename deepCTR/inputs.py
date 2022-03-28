@@ -245,7 +245,7 @@ def create_embedding_matrix(feature_columns, init_std=0.0001, linear=False, spar
     # for varlen sparse features, {embedding_name: nn.EmbeddingBag}
     return embedding_dict.to(device)
 
-def embedding_lookup(X, sparse_embedding_dict, sparse_input_dict, sparse_feature_columns, return_feat_list=(),  to_list=False):
+def embedding_lookup(X, sparse_embedding_dict, sparse_input_dict, sparse_feature_columns, return_feat_list=(), to_list=False):
     """
     embedding lookup查询表
     Args:
@@ -365,4 +365,5 @@ if __name__ == "__main__":
     embedding_dict = create_embedding_matrix(sparseV2columns+var_len_sparse_columns, init_std=0.0001, linear=True, sparse=True)
     print("embedding dict:", embedding_dict)
 
+    # 
 
