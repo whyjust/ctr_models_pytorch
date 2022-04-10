@@ -66,7 +66,7 @@ class VarLenSparseFeat(namedtuple('VarLenSparseFeat', ['sparsefeat', 'maxlen', '
     
     @property
     def embedding_dim(self):
-        return self.sparsefeat.embedding_size
+        return self.sparsefeat.embedding_dim
     
     @property
     def use_hash(self):
@@ -230,7 +230,7 @@ def create_embedding_matrix(feature_columns, init_std=0.0001, linear=False, spar
         filter(lambda x: isinstance(x, VarLenSparseFeat), feature_columns)
     ) if len(feature_columns) else []
     embedding_dict = nn.ModuleDict(
-        {feat.embedding_name: nn.Embedding(feat.vocabulary_size, feat.embedding_size if not linear else 1, sparse=sparse)
+        {feat.embedding_name: nn.Embedding(feat.vocabulary_size, feat.embedding_dim if not linear else 1, sparse=sparse)
         for feat in sparse_feature_columns + varlen_sparse_feature_columns}
     )
     
@@ -364,6 +364,4 @@ if __name__ == "__main__":
     sparseV2columns = [SparseFeat(feat, 20, 10) for feat in ['F1', 'F2', 'F3']]
     embedding_dict = create_embedding_matrix(sparseV2columns+var_len_sparse_columns, init_std=0.0001, linear=True, sparse=True)
     print("embedding dict:", embedding_dict)
-
-    # 
 
