@@ -31,14 +31,14 @@ data[dense_features] = mms.fit_transform(data[dense_features])
 
 # 2.将特征进行分类注册（sparse或dense）
 fixlen_feature_columns = [SparseFeat(feat, data[feat].nunique()) for feat in sparse_features] \
-                            + [DenseFeat(feat, 1, ) for feat in dense_features]
+                         + [DenseFeat(feat, 1, ) for feat in dense_features]
 
 # deepFM中sparse-embedding向量与dense向量都作为DNN输入
 linear_feature_columns = fixlen_feature_columns
 feature_names = get_feature_names(fixlen_feature_columns)
 
 # 3.将数据分类
-train, test = train_test_split(data, test_size=0.2, random_state=2020)
+train, test = train_test_split(data, test_size=0.2, random_state=66)
 train_model_input = {name: train[name] for name in feature_names}
 test_model_input = {name: test[name] for name in feature_names}
 
@@ -51,7 +51,6 @@ if use_cuda and torch.cuda.is_available():
 # 4 DeepFM训练,其中linear_feature_columns只是为继承基类
 model = DeepFM(linear_feature_columns=linear_feature_columns, dnn_feature_columns=fixlen_feature_columns,
                use_fm=True, task='binary', l2_reg_embedding=1e-5, device=device)
-
 model.compile("adam", "binary_crossentropy", metrics=["binary_crossentropy", "auc"])
 
 history = model.fit(train_model_input, train[target].values, batch_size=16, epochs=10, verbose=2,validation_split=0.2)
