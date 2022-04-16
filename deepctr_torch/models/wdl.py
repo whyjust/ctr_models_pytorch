@@ -9,16 +9,32 @@ import torch.nn as nn
 from deepctr_torch.models.basemodel import BaseModel
 from deepctr_torch.inputs import combined_dnn_input
 from deepctr_torch.layers import DNN
-
 class WDL(BaseModel):
     """
     wide & deep 推荐系统
-    Args:
-        BaseModel (_type_): _description_
+    Reference:
+        [1] Cheng H T, Koc L, Harmsen J, et al. Wide & deep learning for recommender systems[C]//Proceedings of the 1st Workshop on Deep Learning for Recommender Systems. ACM, 2016: 7-10.(https://arxiv.org/pdf/1606.07792.pdf)
     """
     def __init__(self, linear_feature_columns, dnn_feature_columns, dnn_hidden_units=(256, 128),
                  l2_reg_linear=1e-5, l2_reg_embedding=1e-5, l2_reg_dnn=0, init_std=0.0001, seed=1024, dnn_dropout=0, dnn_activation='relu',
                  dnn_use_bn=False, task='binary', device='cpu', gpus=None):
+        """
+        Args:
+            linear_feature_columns (_type_): 线性部分的所有特征
+            dnn_feature_columns (_type_): DNN特征列表
+            dnn_hidden_units (tuple, optional): dnn隐层节点. Defaults to (256, 128).
+            l2_reg_linear (_type_, optional): 线性L2正则. Defaults to 1e-5.
+            l2_reg_embedding (_type_, optional): 稠密L2正则. Defaults to 1e-5.
+            l2_reg_dnn (int, optional): DNN正则. Defaults to 0.
+            init_std (float, optional): 初始化. Defaults to 0.0001.
+            seed (int, optional): 种子. Defaults to 1024.
+            dnn_dropout (int, optional): dnn中dropout. Defaults to 0.
+            dnn_activation (str, optional): dnn激活函数. Defaults to 'relu'.
+            dnn_use_bn (bool, optional): dnn是否采用BN. Defaults to False.
+            task (str, optional): 任务名. Defaults to 'binary'.
+            device (str, optional): 设备. Defaults to 'cpu'.
+            gpus (_type_, optional): GPUS个数. Defaults to None.
+        """
         super(WDL, self).__init__(linear_feature_columns, dnn_feature_columns, l2_reg_linear=l2_reg_linear,
                                   l2_reg_embedding=l2_reg_embedding, init_std=init_std, seed=seed, task=task,
                                   device=device, gpus=gpus)

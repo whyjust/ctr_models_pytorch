@@ -1,3 +1,10 @@
+#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+'''
+@File    :   autoint.py
+@Time    :   2022/04/16 23:25:06
+@Author  :   weiguang 
+'''
 import os, sys
 import pandas as pd
 import torch
@@ -5,7 +12,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from deepctr_torch.inputs import SparseFeat, DenseFeat, get_feature_names
-from deepctr_torch.models.afm import AFM
+from deepctr_torch.models.autoint import AutoInt
 from deepctr_torch.models import *
 
 data = pd.read_csv('./criteo_sample.txt')
@@ -16,53 +23,52 @@ data[sparse_features] = data[sparse_features].fillna('-1', )
 data[dense_features] = data[dense_features].fillna(0, )
 target = ['label']
 
-# 1.特征labelencoder与minMaxScaler
+# 1.Label Encoding for sparse features,and do simple Transformation for dense features
 for feat in sparse_features:
     lbe = LabelEncoder()
     data[feat] = lbe.fit_transform(data[feat])
 mms = MinMaxScaler(feature_range=(0, 1))
 data[dense_features] = mms.fit_transform(data[dense_features])
 
-# 2.将特征进行标记（sparse或dense）
+# 2.count #unique features for each sparse field,and record dense feature field name
 fixlen_feature_columns = [SparseFeat(feat, data[feat].nunique()) for feat in sparse_features] \
-                            + [DenseFeat(feat, 1, ) for feat in dense_features]
+                       + [DenseFeat(feat, 1, ) for feat in dense_features]
 
-# 将sparseFeat特征给dnn，sparseFeat与denseFeat给linear
-dnn_feature_columns = [SparseFeat(feat, data[feat].nunique()) for feat in sparse_features] 
+dnn_feature_columns = fixlen_feature_columns
 linear_feature_columns = fixlen_feature_columns
 
 feature_names = get_feature_names(
     linear_feature_columns + dnn_feature_columns)
 
-# 3.将数据分类
-train, test = train_test_split(data, test_size=0.2, random_state=66)
+# 3.generate input data for model
+train, test = train_test_split(data, test_size=0.2, random_state=2020)
 train_model_input = {name: train[name] for name in feature_names}
 test_model_input = {name: test[name] for name in feature_names}
 
+# 4.Define Model,train,predict and evaluate
 device = 'cpu'
 use_cuda = True
 if use_cuda and torch.cuda.is_available():
     print('cuda ready...')
     device = 'cuda:0'
 
-model = AFM(linear_feature_columns=linear_feature_columns, dnn_feature_columns=dnn_feature_columns,
-            task='binary',
-            l2_reg_embedding=1e-5, device=device)
+model = AutoInt(linear_feature_columns=linear_feature_columns, dnn_feature_columns=dnn_feature_columns,
+                task='binary',
+                l2_reg_embedding=1e-5, device=device)
 
-model.compile("adam", "binary_crossentropy", metrics=["binary_crossentropy", "auc"])
-
-history = model.fit(train_model_input, train[target].values, batch_size=16, epochs=10, verbose=2,validation_split=0.2)
-pred_ans = model.predict(test_model_input, 64)
+model.compile("adagrad", "binary_crossentropy", metrics=["binary_crossentropy", "auc"], )
+history = model.fit(train_model_input, train[target].values, batch_size=32, epochs=10, verbose=2,
+                    validation_split=0.2)
+pred_ans = model.predict(test_model_input, 256)
 
 plt.plot(history.epoch, history.history['loss'])
-plt.title('afm loss curve')
+plt.title('afn loss curve')
 plt.plot(history.epoch, history.history['val_auc'])
-plt.title('afm auc curve')
+plt.title('afn auc curve')
 plt.show()
 
-
-"""
-AFM(
+'''
+AutoInt(
   (embedding_dict): ModuleDict(
     (C1): Embedding(27, 4)
     (C2): Embedding(92, 4)
@@ -122,8 +128,22 @@ AFM(
     )
   )
   (out): PredictionLayer()
-  (fm): AFMLayer(
+  (dnn_linear): Linear(in_features=232, out_features=1, bias=False)
+  (dnn): DNN(
     (dropout): Dropout(p=0, inplace=False)
+    (linears): ModuleList(
+      (0): Linear(in_features=117, out_features=256, bias=True)
+      (1): Linear(in_features=256, out_features=128, bias=True)
+    )
+    (activation_layers): ModuleList(
+      (0): ReLU(inplace=True)
+      (1): ReLU(inplace=True)
+    )
+  )
+  (int_layers): ModuleList(
+    (0): InteractingLayer()
+    (1): InteractingLayer()
+    (2): InteractingLayer()
   )
 )
-"""
+'''
