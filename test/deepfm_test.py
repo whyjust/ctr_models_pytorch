@@ -38,7 +38,7 @@ linear_feature_columns = fixlen_feature_columns
 feature_names = get_feature_names(fixlen_feature_columns)
 
 # 3.将数据分类
-train, test = train_test_split(data, test_size=0.2, random_state=66)
+train, test = train_test_split(data, test_size=0.3, random_state=20)
 train_model_input = {name: train[name] for name in feature_names}
 test_model_input = {name: test[name] for name in feature_names}
 
@@ -53,8 +53,8 @@ model = DeepFM(linear_feature_columns=linear_feature_columns, dnn_feature_column
                use_fm=True, task='binary', l2_reg_embedding=1e-5, device=device)
 model.compile("adam", "binary_crossentropy", metrics=["binary_crossentropy", "auc"])
 
-history = model.fit(train_model_input, train[target].values, batch_size=16, epochs=10, verbose=2,validation_split=0.2)
-pred_ans = model.predict(test_model_input, 64)
+history = model.fit(train_model_input, train[target].values, batch_size=256, epochs=10, verbose=2,validation_split=0.2)
+pred_ans = model.predict(test_model_input, 256)
 print(pred_ans)
 
 plt.plot(history.epoch, history.history['loss'])
