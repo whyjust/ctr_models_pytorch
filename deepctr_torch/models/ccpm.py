@@ -16,7 +16,7 @@ from deepctr_torch.layers.utils import concat_fun
 
 class CCPM(BaseModel):
     """
-    CCPM
+    CCPM: Instantiates the Convolutional Click Prediction Model architecture
     Reference:
         [1] Liu Q, Yu F, Wu S, et al. A convolutional click prediction model[C]//Proceedings of the 24th ACM International on Conference on Information and Knowledge Management. ACM, 2015: 1743-1746.
         (http://ir.ia.ac.cn/bitstream/173211/12337/1/A%20Convolutional%20Click%20Prediction%20Model.pdf)
