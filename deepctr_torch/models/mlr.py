@@ -5,7 +5,6 @@
 @Time    :   2022/04/20 23:28:23
 @Author  :   weiguang 
 '''
-
 import torch
 import torch.nn as nn
 from deepctr_torch.models.basemodel import Linear, BaseModel
@@ -15,6 +14,8 @@ from deepctr_torch.layers import PredictionLayer
 class MLR(BaseModel):
     '''
     Mixed Logistic Regression/Piece-wise Linear Model
+    Reference:
+        [1] Gai K, Zhu X, Li H, et al. Learning Piece-wise Linear Models from Large Scale Data for Ad Click Prediction[J]. arXiv preprint arXiv:1704.05194, 2017.(https://arxiv.org/abs/1704.05194)
     '''
     def __init__(self, region_feature_columns, base_feature_columns=None, bias_feature_columns=None,
                  region_num=4, l2_reg_linear=1e-5, init_std=0.0001, seed=1024, task='binary', device='cpu', gpus=None):
