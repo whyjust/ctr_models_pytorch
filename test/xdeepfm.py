@@ -53,8 +53,8 @@ model = xDeepFM(linear_feature_columns=fixlen_feature_columns, dnn_feature_colum
                 dnn_hidden_units=(256, 256), cin_layer_size=(256, 128,),task='binary',  device=device)
 model.compile("adam", "binary_crossentropy", metrics=["binary_crossentropy", "auc"])
 
-history = model.fit(train_model_input, train[target].values, batch_size=16, epochs=10, verbose=2,validation_split=0.2)
-pred_ans = model.predict(test_model_input, 64)
+history = model.fit(train_model_input, train[target].values, batch_size=256, epochs=10, verbose=2,validation_split=0.2)
+pred_ans = model.predict(test_model_input, 256)
 print(pred_ans)
 
 plt.plot(history.epoch, history.history['loss'])
